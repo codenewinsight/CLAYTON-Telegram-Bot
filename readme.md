@@ -33,7 +33,7 @@ Input data two files: `data.txt` and `proxy.txt`.
 
 Recommended use proxy with multiple accounts
 
-Edit theards quanlity in code (default=10)
+Edit threads quantity in code (default=10)
 
 ```bash
 const maxThreads = 10; // Put quantity as your wish
