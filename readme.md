@@ -26,12 +26,15 @@ Run the following command to install the necessary modules:
 npm install
 ```
 Input data two files: `data.txt` and `proxy.txt`.
+
 **Proxy format:** `http://user:pass@ip:port`
+
 **Data format:** `query_id=xxxx` or `user=xxxx`
 
 Recommended use proxy with multiple accounts
 
 Edit theards quanlity in code (default=10)
+
 ```bash
 const maxThreads = 10; // Put quantity as your wish
 ```
@@ -41,4 +44,5 @@ Run the tool with the command:
 `node clayton.js`
 
 Join my Telegram: [LINK](https://t.me/scriptsharing)
+
 Sourcecode/dancayairdrop
