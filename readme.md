@@ -12,7 +12,7 @@
 
     - Auto play game Stack
 
-    - Theards & Multi Account Support
+    - Threads & Multi Account Support
 
 ❗️CLAYTON API poor, there will be error during running code, just skip it.
 
