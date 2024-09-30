@@ -1,6 +1,7 @@
 ### CLAYTON Telegram Auto BOT SCRIPT
 
 **Link CLAYTON:** [Click](https://t.me/claytoncoinbot/game?startapp=1416732111)
+
 **Github download:** [LINK](https://github.com/codenewinsight/CLAYTON-Telegram-Bot)
 
     - Auto farm
