@@ -5,7 +5,7 @@ const colors = require('colors');
 const { DateTime } = require('luxon');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
-const maxThreads = 10; // Put quantity as your wish
+const maxThreads = 1; // số luồng
 
 class Clayton {
     constructor(accountIndex, proxy, initData) {
@@ -15,7 +15,7 @@ class Clayton {
         this.headers = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Encoding": "gzip, deflate, br",
-            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Language": "vi-VN,vi;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5",
             "Content-Type": "application/json",
             "Origin": "https://tonclayton.fun",
             "Referer": "https://tonclayton.fun/?tgWebAppStartParam=376905749",
@@ -32,22 +32,22 @@ class Clayton {
 
     async log(msg, type = 'info') {
         const timestamp = new Date().toLocaleTimeString();
-        const accountPrefix = `[Acc${this.accountIndex + 1}]`;
+        const accountPrefix = `[Tài khoản ${this.accountIndex + 1}]`;
         const ipPrefix = this.proxyIP ? `[${this.proxyIP}]` : '[Unknown IP]';
         let logMessage = '';
 
         switch(type) {
             case 'success':
-                logMessage = `${accountPrefix}${ipPrefix} [t.me/scriptsharing] ${msg}`.green;
+                logMessage = `${accountPrefix}${ipPrefix} ${msg}`.green;
                 break;
             case 'error':
-                logMessage = `${accountPrefix}${ipPrefix} [t.me/scriptsharing] ${msg}`.red;
+                logMessage = `${accountPrefix}${ipPrefix} ${msg}`.red;
                 break;
             case 'warning':
-                logMessage = `${accountPrefix}${ipPrefix} [t.me/scriptsharing] ${msg}`.yellow;
+                logMessage = `${accountPrefix}${ipPrefix} ${msg}`.yellow;
                 break;
             default:
-                logMessage = `${accountPrefix}${ipPrefix} [t.me/scriptsharing] ${msg}`.blue;
+                logMessage = `${accountPrefix}${ipPrefix} ${msg}`.blue;
         }
 
         console.log(logMessage);
@@ -87,7 +87,7 @@ class Clayton {
     }
 
     async login() {
-        return this.makeRequest("https://tonclayton.fun/api/user/login", 'post');
+        return this.makeRequest("https://tonclayton.fun/api/user/auth", 'post');
     }
 
     async dailyClaim() {
@@ -124,7 +124,7 @@ class Clayton {
                         if (completeResult.success) {
                             const rewardResult = await this.rewardPartnerTask(task.task_id);
                             if (rewardResult.success) {
-                                this.log(`Perform Task ${task.task.title} success. Reward ${task.task.reward_tokens} CL`, 'success');
+                                this.log(`Làm nhiệm vụ ${task.task.title} thành công. Nhận được ${task.task.reward_tokens} CL`, 'success');
                                 break;
                             }
                         } else {
@@ -134,7 +134,7 @@ class Clayton {
                         }
                     }
                     if (taskAttempts === maxAttempts) {
-                        this.log(`Task Failed ${task.task.title} after ${maxAttempts} attempts. skip this task.`, 'error');
+                        this.log(`Không thể hoàn thành nhiệm vụ ${task.task.title} sau ${maxAttempts} lần thử. Bỏ qua nhiệm vụ này.`, 'error');
                     }
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
@@ -147,7 +147,7 @@ class Clayton {
         }
 
         if (fetchAttempts === maxAttempts) {
-            this.log(`Unable to get the following partner task list - ${maxAttempts} attempts. skip this task.`, 'error');
+            this.log(`Không thể lấy danh sách nhiệm vụ đối tác sau ${maxAttempts} lần thử. Bỏ qua xử lý nhiệm vụ đối tác.`, 'error');
         }
     }
 
@@ -181,11 +181,11 @@ class Clayton {
                         if (completeResult.success) {
                             const claimResult = await this.claimDailyTask(task.task_id);
                             if (claimResult.success) {
-                                this.log(`Perform Task ${task.task.title} success. Reward ${claimResult.data.reward_tokens} CL`, 'success');
-                                this.log(`Total CL: ${claimResult.data.total_tokens} | Game attempts: ${claimResult.data.game_attempts}`, 'info');
+                                this.log(`Làm nhiệm vụ ${task.task.title} thành công. Nhận được ${claimResult.data.reward_tokens} CL`, 'success');
+                                this.log(`Tổng CL: ${claimResult.data.total_tokens} | Số lượt chơi game: ${claimResult.data.game_attempts}`, 'info');
                                 break;
                             } else {
-                                this.log(`Task reward claim failed ${task.task.title}: ${claimResult.error || 'Unknown error'}`, 'error');
+                                this.log(`Không thể nhận phần thưởng cho nhiệm vụ ${task.task.title}: ${claimResult.error || 'Lỗi không xác định'}`, 'error');
                             }
                         } else {
                             if (taskAttempts < maxAttempts) {
@@ -194,7 +194,7 @@ class Clayton {
                         }
                     }
                     if (taskAttempts === maxAttempts) {
-                        this.log(`Complete task failed ${task.task.title} after ${maxAttempts} attempts. Skip task.`, 'error');
+                        this.log(`Không thể hoàn thành nhiệm vụ ${task.task.title} sau ${maxAttempts} lần thử. Bỏ qua nhiệm vụ này.`, 'error');
                     }
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
@@ -207,18 +207,18 @@ class Clayton {
         }
 
         if (fetchAttempts === maxAttempts) {
-            this.log(`Unable to retrieve the daily task list after ${maxAttempts} attempts. Skipping daily task processing.`, 'error');
+            this.log(`Không thể lấy danh sách nhiệm vụ hàng ngày sau ${maxAttempts} lần thử. Bỏ qua xử lý nhiệm vụ hàng ngày.`, 'error');
         }
     }
 
     async play2048() {
         const startGameResult = await this.makeRequest("https://tonclayton.fun/api/game/start", 'post');
         if (!startGameResult.success || startGameResult.data.message !== "Game started successfully") {
-            this.log("Start game 2048 - Failed", 'error');
+            this.log("Không thể bắt đầu trò chơi 2048", 'error');
             return;
         }
 
-        this.log("Game 2048 Start success", 'success');
+        this.log("Trò chơi 2048 đã bắt đầu thành công", 'success');
 
         const fixedMilestones = [4, 8, 16, 32, 64, 128, 256, 512, 1024];
         const allMilestones = [...fixedMilestones].sort((a, b) => a - b);
@@ -231,16 +231,16 @@ class Clayton {
 
             const saveGameResult = await this.makeRequest("https://tonclayton.fun/api/game/save-tile", 'post', { maxTile: milestone });
             if (saveGameResult.success && saveGameResult.data.message === "MaxTile saved successfully") {
-                this.log(`Reached the cell ${milestone}`, 'success');
+                this.log(`Đã đạt đến ô ${milestone}`, 'success');
             }
         }
 
         const endGameResult = await this.makeRequest("https://tonclayton.fun/api/game/over", 'post', { multiplier: 1 });
         if (endGameResult.success) {
             const reward = endGameResult.data;
-            this.log(`Game 2048 complete success. Reward ${reward.earn} CL & ${reward.xp_earned} XP`, 'success');
+            this.log(`Trò chơi 2048 đã kết thúc thành công. Nhận ${reward.earn} CL và ${reward.xp_earned} XP`, 'success');
         } else {
-            this.log(`Complete Game 2048 Failed: ${endGameResult.error || 'Unknown error'}`, 'error');
+            this.log(`Lỗi kết thúc trò chơi 2048: ${endGameResult.error || 'Lỗi không xác định'}`, 'error');
         }
 
         await new Promise(resolve => setTimeout(resolve, 5000));
@@ -249,11 +249,11 @@ class Clayton {
     async playStack() {
         const startGameResult = await this.makeRequest("https://tonclayton.fun/api/stack/start-game", 'post');
         if (!startGameResult.success) {
-            this.log("Stard Game Stack failed", 'error');
+            this.log("Không thể bắt đầu trò chơi Stack", 'error');
             return;
         }
 
-        this.log("Game Stack Start success", 'success');
+        this.log("Trò chơi Stack đã bắt đầu thành công", 'success');
 
         const gameEndTime = Date.now() + 120000;
         const scores = [10, 20, 30, 40, 50, 60, 70, 80, 90];
@@ -264,10 +264,10 @@ class Clayton {
 
             const updateResult = await this.makeRequest("https://tonclayton.fun/api/stack/update-game", 'post', { score });
             if (updateResult.success) {
-                this.log(`Update Stack Points: ${score}`, 'success');
+                this.log(`Cập nhật điểm Stack: ${score}`, 'success');
                 currentScoreIndex++;
             } else {
-                this.log(`Update Stack Point failed: ${updateResult.error || 'Unknown error'}`, 'error');
+                this.log(`Lỗi cập nhật điểm Stack: ${updateResult.error || 'Lỗi không xác định'}`, 'error');
             }
 
             await new Promise(resolve => setTimeout(resolve, Math.random() * 10000 + 5000));
@@ -278,9 +278,9 @@ class Clayton {
         const endGameResult = await this.makeRequest("https://tonclayton.fun/api/stack/end-game", 'post', { score: finalScore, multiplier: 1 });
         if (endGameResult.success) {
             const reward = endGameResult.data;
-            this.log(`Game Stack complete success. Reward ${reward.earn} CL & ${reward.xp_earned} XP`, 'success');
+            this.log(`Trò chơi Stack đã kết thúc thành công. Nhận ${reward.earn} CL và ${reward.xp_earned} XP`, 'success');
         } else {
-            this.log(`Completing GameStack Failed: ${endGameResult.error || 'Unknown error'}`, 'error');
+            this.log(`Lỗi kết thúc trò chơi Stack: ${endGameResult.error || 'Lỗi không xác định'}`, 'error');
         }
 
         await new Promise(resolve => setTimeout(resolve, 5000));
@@ -290,17 +290,17 @@ class Clayton {
         while (true) {
             const loginResult = await this.login();
             if (!loginResult.success) {
-                this.log("Checking Ticket Failed", 'error');
+                this.log("Không kiểm tra được vé", 'error');
                 return;
             }
 
             const tickets = loginResult.data.user.daily_attempts;
             if (tickets <= 0) {
-                this.log("No more tickets. Stopping the game.", 'info');
+                this.log("Không còn vé nữa. dừng chơi game.", 'info');
                 return;
             }
 
-            this.log(`Ticket Balance: ${tickets}`, 'info');
+            this.log(`Số vé hiện tại: ${tickets}`, 'info');
 
             if (tickets >= 2) {
                 await this.play2048();
@@ -332,7 +332,7 @@ class Clayton {
         }
 
         if (!tasksResult.success) {
-            this.log(`Unable to retrieve the default task list after ${maxAttempts} attempts. Skipping default task processing.`, 'error');
+            this.log(`Không thể lấy danh sách nhiệm vụ mặc định sau ${maxAttempts} lần thử. Bỏ qua xử lý nhiệm vụ mặc định.`, 'error');
             return;
         }
 
@@ -349,9 +349,9 @@ class Clayton {
             
             if (claimResult.success) {
                 const reward = claimResult.data;
-                this.log(`Perform Task ${task.task.title} success. Reward ${reward.reward_tokens} CL | Balance: ${reward.total_tokens}`, 'success');
+                this.log(`Làm nhiệm vụ ${task.task.title} thành công. Phần thưởng ${reward.reward_tokens} CL | Balance: ${reward.total_tokens}`, 'success');
             } else {
-                this.log(`Unable to claim the reward for task ${task.task.title}: ${claimResult.error || 'Unknown error'}`, 'error');
+                this.log(`Không thể nhận phần thưởng cho nhiệm vụ ${task.task.title}: ${claimResult.error || 'Lỗi không xác định'}`, 'error');
             }
 
             await new Promise(resolve => setTimeout(resolve, Math.random() * 5000 + 2000));
@@ -377,7 +377,7 @@ class Clayton {
         }
 
         if (!SuperTasks.success) {
-            this.log(`Unable to retrieve the Super task list after ${maxAttempts} attempts. Skipping Super task processing.`, 'error');
+            this.log(`Không thể lấy danh sách nhiệm vụ cao cấp sau ${maxAttempts} lần thử. Bỏ qua xử lý nhiệm vụ cao cấp.`, 'error');
             return;
         }
 
@@ -394,9 +394,9 @@ class Clayton {
             
             if (claimResult.success) {
                 const reward = claimResult.data;
-                this.log(`Perform Task ${task.task.title} success. Reward ${reward.reward_tokens} CL | Balance: ${reward.total_tokens}`, 'success');
+                this.log(`Làm nhiệm vụ ${task.task.title} thành công. Phần thưởng ${reward.reward_tokens} CL | Balance: ${reward.total_tokens}`, 'success');
             } else {
-                this.log(`Failed to get Reward for Task ${task.task.title}: ${claimResult.error || 'Unknown Error'}`, 'error');
+                this.log(`Không thể nhận phần thưởng cho nhiệm vụ ${task.task.title}: ${claimResult.error || 'Lỗi không xác định'}`, 'error');
             }
 
             await new Promise(resolve => setTimeout(resolve, Math.random() * 5000 + 2000));
@@ -416,21 +416,21 @@ class Clayton {
 
         while (!loginSuccess && loginAttempts < 3) {
             loginAttempts++;
-            this.log(`Login... (attempts ${loginAttempts})`, 'info');
+            this.log(`Đăng nhập... (Lần thử ${loginAttempts})`, 'info');
             loginResult = await this.login();
             if (loginResult.success) {
                 loginSuccess = true;
             } else {
-                this.log(`Login Failed: ${loginResult.error}`, 'error');
+                this.log(`Đăng nhập thất bại: ${loginResult.error}`, 'error');
                 if (loginAttempts < 3) {
-                    this.log('retry...', 'info');
+                    this.log('Thử lại...', 'info');
                     await new Promise(resolve => setTimeout(resolve, 5000));
                 }
             }
         }
 
         if (!loginSuccess) {
-            this.log('Login Failed after 3 attempts. Skipping account.', 'error');
+            this.log('Đăng nhập không thành công sau 3 lần thử. Bỏ qua tài khoản.', 'error');
             return;
         }
 
@@ -438,12 +438,12 @@ class Clayton {
         this.log(`CL: ${userInfo.tokens} CL | ${userInfo.daily_attempts} Ticket`, 'info');
 
         if (loginResult.data.dailyReward.can_claim_today) {
-            this.log('Request Daily Reward ...', 'info');
+            this.log('Yêu cầu phần thưởng hàng ngày...', 'info');
             const claimResult = await this.dailyClaim();
             if (claimResult.success) {
-                this.log('Daily Reward claim success!', 'success');
+                this.log('Phần thưởng hàng ngày đã được nhận thành công!', 'success');
             } else {
-                this.log(`Daily Reward claim failed: ${claimResult.error || 'Unknown error'}`, 'error');
+                this.log(`Không thể nhận phần thưởng hàng ngày: ${claimResult.error || 'Lỗi không xác định'}`, 'error');
             }
         }
 
@@ -451,7 +451,7 @@ class Clayton {
         if (userInfo.daily_attempts > 0) {
             await this.playGames();
         } else {
-            this.log(`Game ticket empty`, 'success');
+            this.log(`Không còn vé trò chơi`, 'success');
         }
         await this.handleDefaultTasks();
         await this.handlePartnerTasks();
@@ -482,15 +482,15 @@ async function main() {
                 const proxy = proxies[accountIndex % proxies.length];
                 const client = new Clayton(accountIndex, proxy, initData);
                 return timeout(client.processAccount(), 10 * 60 * 1000).catch(err => {
-                    client.log(`Account processing error: ${err.message}`, 'error');
+                    client.log(`Lỗi xử lý tài khoản: ${err.message}`, 'error');
                 });
             });
 
             await Promise.allSettled(promises);
             await new Promise(resolve => setTimeout(resolve, 5000));
         }
-        console.log(`All accounts completed, wait 3 hours to continue.`);
-        await new Promise(resolve => setTimeout(resolve, 3600 * 3 * 1000));
+        console.log(`Hoàn thành tất cả tài khoản, chờ 24 giờ để tiếp tục`);
+        await new Promise(resolve => setTimeout(resolve, 86400 * 1000));
     }
 }
 
