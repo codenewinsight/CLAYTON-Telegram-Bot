@@ -5,7 +5,7 @@ const colors = require('colors');
 const { DateTime } = require('luxon');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
-const maxThreads = 10; // Put quantity as your wish
+const maxThreads = 1; // Put quantity as your wish
 
 class Clayton {
     constructor(accountIndex, proxy, initData) {
@@ -18,7 +18,7 @@ class Clayton {
             "Accept-Language": "vi-VN,vi;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5",
             "Content-Type": "application/json",
             "Origin": "https://tonclayton.fun",
-            "Referer": "https://tonclayton.fun/?tgWebAppStartParam=376905749",
+            "Referer": "https://tonclayton.fun/games",
             "Sec-Ch-Ua": '"Not/A)Brand";v="99", "Google Chrome";v="115", "Chromium";v="115"',
             "Sec-Ch-Ua-Mobile": "?0",
             "Sec-Ch-Ua-Platform": '"Windows"',
@@ -87,7 +87,7 @@ class Clayton {
     }
 
     async login() {
-        return this.makeRequest("https://tonclayton.fun/api/user/auth", 'post');
+        return this.makeRequest("https://tonclayton.fun/api/user/authorization", 'post');
     }
 
     async dailyClaim() {
