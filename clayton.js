@@ -247,7 +247,7 @@ class Clayton {
     }
 
     async playStack() {
-        const startGameResult = await this.makeRequest("https://tonclayton.fun/api/stack/start-game", 'post');
+        const startGameResult = await this.makeRequest("https://tonclayton.fun/api/stack/st-game", 'post');
         if (!startGameResult.success) {
             this.log("Stard Game Stack Failed", 'error');
             return;
@@ -275,7 +275,7 @@ class Clayton {
 
         const finalScore = scores[currentScoreIndex - 1] || 90;
 
-        const endGameResult = await this.makeRequest("https://tonclayton.fun/api/stack/end-game", 'post', { score: finalScore, multiplier: 1 });
+        const endGameResult = await this.makeRequest("https://tonclayton.fun/api/stack/en-game", 'post', { score: finalScore, multiplier: 1 });
         if (endGameResult.success) {
             const reward = endGameResult.data;
             this.log(`Game Stack completed Success. Nhận ${reward.earn} CL và ${reward.xp_earned} XP`, 'success');
