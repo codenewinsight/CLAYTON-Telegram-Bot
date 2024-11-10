@@ -5,13 +5,14 @@ const colors = require('colors');
 const { DateTime } = require('luxon');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
-const maxThreads = 1; // Put quantity as your wish
+const maxThreads = 1; // Theards
 
 class Clayton {
     constructor(accountIndex, proxy, initData) {
         this.accountIndex = accountIndex;
         this.proxy = proxy;
         this.initData = initData;
+        this.apiBaseId = null;
         this.headers = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Encoding": "gzip, deflate, br",
@@ -19,13 +20,13 @@ class Clayton {
             "Content-Type": "application/json",
             "Origin": "https://tonclayton.fun",
             "Referer": "https://tonclayton.fun/games",
-            "Sec-Ch-Ua": '"Not/A)Brand";v="99", "Google Chrome";v="115", "Chromium";v="115"',
+            "Sec-Ch-Ua": '"Not/A)Brand";v="99", "Google Chrome";v="122", "Chromium";v="122"',
             "Sec-Ch-Ua-Mobile": "?0",
             "Sec-Ch-Ua-Platform": '"Windows"',
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
         };
         this.proxyIP = null;
     }
@@ -38,7 +39,7 @@ class Clayton {
 
         switch(type) {
             case 'success':
-                logMessage = `${accountPrefix}${ipPrefix} [t.me/scriptsharing ${msg}`.green;
+                logMessage = `${accountPrefix}${ipPrefix} [t.me/scriptsharing] ${msg}`.green;
                 break;
             case 'error':
                 logMessage = `${accountPrefix}${ipPrefix} [t.me/scriptsharing] ${msg}`.red;
@@ -51,6 +52,31 @@ class Clayton {
         }
 
         console.log(logMessage);
+    }
+
+    async fetchApiBaseId() {
+        try {
+            const response = await axios.get('https://tonclayton.fun/assets/index-KOCK7Ubh.js');
+            const jsContent = response.data;
+            
+            const match = jsContent.match(/_ge="([^"]+)"/);
+            if (match && match[1]) {
+                this.apiBaseId = match[1];
+                return true;
+            } else {
+                throw new Error('Not found API Base ID in file JS');
+            }
+        } catch (error) {
+            this.log(`Get API Base ID error: ${error.message}`, 'error');
+            return false;
+        }
+    }
+
+    getApiUrl(endpoint) {
+        if (!this.apiBaseId) {
+            throw new Error('API Base ID not initialized');
+        }
+        return `https://tonclayton.fun/api/${this.apiBaseId}/${endpoint}`;
     }
 
     async checkProxyIP() {
@@ -68,14 +94,14 @@ class Clayton {
         }
     }
 
-    async makeRequest(url, method, data = {}) {
+    async makeRequest(endpoint, method, data = {}) {
         const headers = { ...this.headers, "Init-Data": this.initData };
         const proxyAgent = new HttpsProxyAgent(this.proxy);
 
         try {
             const response = await axios({
                 method,
-                url,
+                url: this.getApiUrl(endpoint),
                 data,
                 headers,
                 httpsAgent: proxyAgent
@@ -87,23 +113,23 @@ class Clayton {
     }
 
     async login() {
-        return this.makeRequest("https://tonclayton.fun/api/user/authorization", 'post');
+        return this.makeRequest("user/authorization", 'post');
     }
 
     async dailyClaim() {
-        return this.makeRequest("https://tonclayton.fun/api/user/daily-claim", 'post');
+        return this.makeRequest("user/daily-claim", 'post');
     }
 
     async getPartnerTasks() {
-        return this.makeRequest("https://tonclayton.fun/api/tasks/partner-tasks", 'get');
+        return this.makeRequest("tasks/partner-tasks", 'get');
     }
 
     async completePartnerTask(taskId) {
-        return this.makeRequest("https://tonclayton.fun/api/tasks/complete", 'post', { task_id: taskId });
+        return this.makeRequest("tasks/complete", 'post', { task_id: taskId });
     }
 
     async rewardPartnerTask(taskId) {
-        return this.makeRequest("https://tonclayton.fun/api/tasks/claim", 'post', { task_id: taskId });
+        return this.makeRequest("tasks/claim", 'post', { task_id: taskId });
     }
 
     async handlePartnerTasks() {
@@ -134,7 +160,7 @@ class Clayton {
                         }
                     }
                     if (taskAttempts === maxAttempts) {
-                        this.log(`Complete task failed ${task.task.title} after ${maxAttempts} attempts. Skip this task.`, 'error');
+                        this.log(`Task ${task.task.title} failed after ${maxAttempts} attempts. Skip.`, 'error');
                     }
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
@@ -147,20 +173,20 @@ class Clayton {
         }
 
         if (fetchAttempts === maxAttempts) {
-            this.log(`Get Partner task list after ${maxAttempts} attempts. Skip.`, 'error');
+            this.log(`Get Partner task list failed after ${maxAttempts} attempts. Skip.`, 'error');
         }
     }
 
     async getDailyTasks() {
-        return this.makeRequest("https://tonclayton.fun/api/tasks/daily-tasks", 'get');
+        return this.makeRequest("tasks/daily-tasks", 'get');
     }
 
     async completeDailyTask(taskId) {
-        return this.makeRequest("https://tonclayton.fun/api/tasks/complete", 'post', { task_id: taskId });
+        return this.makeRequest("tasks/complete", 'post', { task_id: taskId });
     }
 
     async claimDailyTask(taskId) {
-        return this.makeRequest("https://tonclayton.fun/api/tasks/claim", 'post', { task_id: taskId });
+        return this.makeRequest("tasks/claim", 'post', { task_id: taskId });
     }
 
     async handleDailyTasks() {
@@ -182,10 +208,10 @@ class Clayton {
                             const claimResult = await this.claimDailyTask(task.task_id);
                             if (claimResult.success) {
                                 this.log(`Task ${task.task.title} Success. Reward ${claimResult.data.reward_tokens} CL`, 'success');
-                                this.log(`Total CL: ${claimResult.data.total_tokens} | Game Ticket: ${claimResult.data.game_attempts}`, 'info');
+                                this.log(`Total CL: ${claimResult.data.total_tokens} | Ticket: ${claimResult.data.game_attempts}`, 'info');
                                 break;
                             } else {
-                                this.log(`Get Game Reward Failed ${task.task.title}: ${claimResult.error || 'Unknow Error'}`, 'error');
+                                this.log(`Claim Reward failed for task ${task.task.title}: ${claimResult.error || 'Unknow error'}`, 'error');
                             }
                         } else {
                             if (taskAttempts < maxAttempts) {
@@ -194,7 +220,7 @@ class Clayton {
                         }
                     }
                     if (taskAttempts === maxAttempts) {
-                        this.log(`Complete task failed ${task.task.title} after ${maxAttempts} attempts. Skip.`, 'error');
+                        this.log(`Perform task failed - ${task.task.title} after ${maxAttempts} attempts. Skip.`, 'error');
                     }
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
@@ -207,53 +233,70 @@ class Clayton {
         }
 
         if (fetchAttempts === maxAttempts) {
-            this.log(`Get Daily Task List failed after ${maxAttempts} attempts. Skip.`, 'error');
+            this.log(`Get Daily task list failed after ${maxAttempts} attempts. Skip.`, 'error');
         }
     }
 
     async play2048() {
-        const startGameResult = await this.makeRequest("https://tonclayton.fun/api/game/start", 'post');
-        if (!startGameResult.success || startGameResult.data.message !== "Game started successfully") {
-            this.log("Start Game 2048 Failed", 'error');
+        const startGameResult = await this.makeRequest("game/start", 'post');
+        if (!startGameResult.success || !startGameResult.data.session_id) {
+            this.log("Start game 2048 failed", 'error');
             return;
         }
-
-        this.log("Game 2048 started Success", 'success');
-
-        const fixedMilestones = [4, 8, 16, 32, 64, 128, 256, 512, 1024];
+    
+        const sessionId = startGameResult.data.session_id;
+        this.log("Start game 2048 Success", 'success');
+    
+        const fixedMilestones = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
         const allMilestones = [...fixedMilestones].sort((a, b) => a - b);
         const gameEndTime = Date.now() + 150000;
-
+        let maxTileReached = 2;
+    
         for (const milestone of allMilestones) {
             if (Date.now() >= gameEndTime) break;
             
             await new Promise(resolve => setTimeout(resolve, Math.random() * 10000 + 5000));
-
-            const saveGameResult = await this.makeRequest("https://tonclayton.fun/api/game/save-tile", 'post', { maxTile: milestone });
+    
+            const saveGameResult = await this.makeRequest(
+                "game/save-tile",
+                'post',
+                { session_id: sessionId, maxTile: milestone }
+            );
+            
             if (saveGameResult.success && saveGameResult.data.message === "MaxTile saved successfully") {
                 this.log(`Reached cell ${milestone}`, 'success');
+                maxTileReached = milestone;
             }
         }
-
-        const endGameResult = await this.makeRequest("https://tonclayton.fun/api/game/over", 'post', { multiplier: 1 });
+    
+        const endGameResult = await this.makeRequest(
+            "game/over",
+            'post',
+            { 
+                session_id: sessionId,
+                multiplier: 1,
+                maxTile: maxTileReached
+            }
+        );
+    
         if (endGameResult.success) {
             const reward = endGameResult.data;
-            this.log(`Game 2048 completed Success. Reward ${reward.earn} CL & ${reward.xp_earned} XP`, 'success');
+            this.log(`Complete Game 2048 Success. Reward ${reward.earn} CL & ${reward.xp_earned} XP`, 'success');
         } else {
-            this.log(`Game 2048 complete Failed: ${endGameResult.error || 'Unknow Error'}`, 'error');
+            this.log(`Complete Game 2048 Failed: ${endGameResult.error || 'Unknow Error'}`, 'error');
         }
-
+    
         await new Promise(resolve => setTimeout(resolve, 5000));
     }
 
     async playStack() {
-        const startGameResult = await this.makeRequest("https://tonclayton.fun/api/stack/st-game", 'post');
+        const startGameResult = await this.makeRequest("stack/st-game", 'post');
         if (!startGameResult.success) {
-            this.log("Stard Game Stack Failed", 'error');
+            this.log("Start Game Stack Failed", 'error');
             return;
         }
 
-        this.log("Game Stack started Success", 'success');
+        this.log("Start Game Stack Success", 'success');
 
         const gameEndTime = Date.now() + 120000;
         const scores = [10, 20, 30, 40, 50, 60, 70, 80, 90];
@@ -262,12 +305,12 @@ class Clayton {
         while (Date.now() < gameEndTime && currentScoreIndex < scores.length) {
             const score = scores[currentScoreIndex];
 
-            const updateResult = await this.makeRequest("https://tonclayton.fun/api/stack/update-game", 'post', { score });
+            const updateResult = await this.makeRequest("stack/update-game", 'post', { score });
             if (updateResult.success) {
-                this.log(`Update Stack Points: ${score}`, 'success');
+                this.log(`Update Stack Point: ${score}`, 'success');
                 currentScoreIndex++;
             } else {
-                this.log(`Update Stack Points Error: ${updateResult.error || 'Unknow Error'}`, 'error');
+                this.log(`Update Stack Point Error: ${updateResult.error || 'Unknow Error'}`, 'error');
             }
 
             await new Promise(resolve => setTimeout(resolve, Math.random() * 10000 + 5000));
@@ -275,32 +318,31 @@ class Clayton {
 
         const finalScore = scores[currentScoreIndex - 1] || 90;
 
-        const endGameResult = await this.makeRequest("https://tonclayton.fun/api/stack/en-game", 'post', { score: finalScore, multiplier: 1 });
+        const endGameResult = await this.makeRequest("stack/en-game", 'post', { score: finalScore, multiplier: 1 });
         if (endGameResult.success) {
             const reward = endGameResult.data;
-            this.log(`Game Stack completed Success. Nhận ${reward.earn} CL và ${reward.xp_earned} XP`, 'success');
+            this.log(`Complete Game Stack Success. Reward ${reward.earn} CL & ${reward.xp_earned} XP`, 'success');
         } else {
             this.log(`Complete Game Stack Failed: ${endGameResult.error || 'Unknow Error'}`, 'error');
         }
 
         await new Promise(resolve => setTimeout(resolve, 5000));
     }
-
     async playGames() {
         while (true) {
             const loginResult = await this.login();
             if (!loginResult.success) {
-                this.log("Check ticket Failed", 'error');
+                this.log("Cant check ticket", 'error');
                 return;
             }
 
             const tickets = loginResult.data.user.daily_attempts;
             if (tickets <= 0) {
-                this.log("Ticket Empty. Stop Game", 'info');
+                this.log("Ticket = 0. Stop Game", 'info');
                 return;
             }
 
-            this.log(`Remain Ticket: ${tickets}`, 'info');
+            this.log(`Ticket Balance: ${tickets}`, 'info');
 
             if (tickets >= 2) {
                 await this.play2048();
@@ -320,7 +362,7 @@ class Clayton {
 
         while (attempts < maxAttempts) {
             attempts++;
-            tasksResult = await this.makeRequest("https://tonclayton.fun/api/tasks/default-tasks", 'get');
+            tasksResult = await this.makeRequest("tasks/default-tasks", 'get');
             
             if (tasksResult.success) {
                 break;
@@ -332,26 +374,26 @@ class Clayton {
         }
 
         if (!tasksResult.success) {
-            this.log(`Get Defaut task list failed after ${maxAttempts} attempts. Skip.`, 'error');
+            this.log(`Get Default Task list failed after ${maxAttempts} attempts. Skip.`, 'error');
             return;
         }
 
         const incompleteTasks = tasksResult.data.filter(task => !task.is_completed && task.task_id !== 9);
 
         for (const task of incompleteTasks) {
-            const completeResult = await this.makeRequest("https://tonclayton.fun/api/tasks/complete", 'post', { task_id: task.task_id });
+            const completeResult = await this.makeRequest("tasks/complete", 'post', { task_id: task.task_id });
             
             if (!completeResult.success) {
                 continue;
             }
 
-            const claimResult = await this.makeRequest("https://tonclayton.fun/api/tasks/claim", 'post', { task_id: task.task_id });
+            const claimResult = await this.makeRequest("tasks/claim", 'post', { task_id: task.task_id });
             
             if (claimResult.success) {
                 const reward = claimResult.data;
                 this.log(`Task ${task.task.title} Success. Reward ${reward.reward_tokens} CL | Balance: ${reward.total_tokens}`, 'success');
             } else {
-                this.log(`Get reward failed | Task ${task.task.title}: ${claimResult.error || 'Unknow Error'}`, 'error');
+                this.log(`Claim Reward failed for task ${task.task.title}: ${claimResult.error || 'Unknow Error'}`, 'error');
             }
 
             await new Promise(resolve => setTimeout(resolve, Math.random() * 5000 + 2000));
@@ -365,7 +407,7 @@ class Clayton {
 
         while (attempts < maxAttempts) {
             attempts++;
-            SuperTasks = await this.makeRequest("https://tonclayton.fun/api/tasks/super-tasks", 'get');
+            SuperTasks = await this.makeRequest("tasks/super-tasks", 'get');
             
             if (SuperTasks.success) {
                 break;
@@ -377,26 +419,26 @@ class Clayton {
         }
 
         if (!SuperTasks.success) {
-            this.log(`Get Super Task List Failed after ${maxAttempts} attempts. Skip.`, 'error');
+            this.log(`Get Premium task list failed after ${maxAttempts} attemps. Skip.`, 'error');
             return;
         }
 
         const incompleteTasks = SuperTasks.data.filter(task => !task.is_completed);
 
         for (const task of incompleteTasks) {
-            const completeResult = await this.makeRequest("https://tonclayton.fun/api/tasks/complete", 'post', { task_id: task.task_id });
+            const completeResult = await this.makeRequest("tasks/complete", 'post', { task_id: task.task_id });
             
             if (!completeResult.success) {
                 continue;
             }
 
-            const claimResult = await this.makeRequest("https://tonclayton.fun/api/tasks/claim", 'post', { task_id: task.task_id });
+            const claimResult = await this.makeRequest("tasks/claim", 'post', { task_id: task.task_id });
             
             if (claimResult.success) {
                 const reward = claimResult.data;
                 this.log(`Task ${task.task.title} Success. Reward ${reward.reward_tokens} CL | Balance: ${reward.total_tokens}`, 'success');
             } else {
-                this.log(`Get Reward failed | Task ${task.task.title}: ${claimResult.error || 'Unknow Error'}`, 'error');
+                this.log(`Claim Reward failed for task ${task.task.title}: ${claimResult.error || 'Unknow Error'}`, 'error');
             }
 
             await new Promise(resolve => setTimeout(resolve, Math.random() * 5000 + 2000));
@@ -410,13 +452,24 @@ class Clayton {
             this.log(`Cannot check proxy IP: ${error.message}`, 'warning');
         }
 
+        try {
+            const apiBaseIdSuccess = await this.fetchApiBaseId();
+            if (!apiBaseIdSuccess) {
+                this.log('Failed to initialize API Base ID. Skipping account.', 'error');
+                return;
+            }
+        } catch (error) {
+            this.log(`Error initializing API Base ID: ${error.message}`, 'error');
+            return;
+        }
+
         let loginSuccess = false;
         let loginAttempts = 0;
         let loginResult;
 
         while (!loginSuccess && loginAttempts < 3) {
             loginAttempts++;
-            this.log(`Login..... (Attempts ${loginAttempts})`, 'info');
+            this.log(`Login... (Lần thử ${loginAttempts})`, 'info');
             loginResult = await this.login();
             if (loginResult.success) {
                 loginSuccess = true;
@@ -430,20 +483,20 @@ class Clayton {
         }
 
         if (!loginSuccess) {
-            this.log('Login Failed after 3 attempts. Skip this account', 'error');
+            this.log('Login failed after 3 attempts. Skip', 'error');
             return;
         }
 
         const userInfo = loginResult.data.user;
-        this.log(`CL: ${userInfo.tokens} CL | ${userInfo.daily_attempts} Ticket`, 'info');
+        this.log(`Balance: ${userInfo.tokens} CL | ${userInfo.daily_attempts} Ticket`, 'info');
 
         if (loginResult.data.dailyReward.can_claim_today) {
-            this.log('Request Daily Reward...', 'info');
+            this.log('Claim Daily Reward...', 'info');
             const claimResult = await this.dailyClaim();
             if (claimResult.success) {
-                this.log('Daily Reward Claim Success!', 'success');
+                this.log('Claim Daily Reward Success!', 'success');
             } else {
-                this.log(`Daily Reward Claim Failed: ${claimResult.error || 'Unknow Error'}`, 'error');
+                this.log(`Claim Daily Reward Failed: ${claimResult.error || 'Unknow Error'}`, 'error');
             }
         }
 
@@ -451,8 +504,9 @@ class Clayton {
         if (userInfo.daily_attempts > 0) {
             await this.playGames();
         } else {
-            this.log(`Game Ticket Empty`, 'success');
+            this.log(`Ticket Empty`, 'success');
         }
+
         await this.handleDefaultTasks();
         await this.handlePartnerTasks();
         await this.handleDailyTasks();
@@ -482,14 +536,14 @@ async function main() {
                 const proxy = proxies[accountIndex % proxies.length];
                 const client = new Clayton(accountIndex, proxy, initData);
                 return timeout(client.processAccount(), 10 * 60 * 1000).catch(err => {
-                    client.log(`Process Account Failed: ${err.message}`, 'error');
+                    client.log(`Account processing error: ${err.message}`, 'error');
                 });
             });
 
             await Promise.allSettled(promises);
             await new Promise(resolve => setTimeout(resolve, 5000));
         }
-        console.log(`Completed Process All Account, Wait 24 hours to continue`);
+        console.log(`Complete all accounts, wait 24 hours to continue`);
         await new Promise(resolve => setTimeout(resolve, 86400 * 1000));
     }
 }
@@ -514,3 +568,4 @@ main().catch(err => {
     console.error(err);
     process.exit(1);
 });
+    
